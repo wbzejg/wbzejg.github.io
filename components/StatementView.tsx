@@ -1,6 +1,7 @@
 "use client"
 import {useState} from 'react'
 import {Statement} from 'contentlayer/generated';
+import {format, parseISO} from 'date-fns';
 
 interface Props {
   statement: Statement
@@ -9,6 +10,7 @@ interface Props {
 type Argument = {
   id: number,
   parent: number,
+  date: string|undefined,
   title: string,
   desc: string|undefined,
   type: string,
@@ -72,6 +74,15 @@ const AncestorsView = ({ argumentMap, argument, onClick }: AncestorsParams) => {
 const MainArgumentView = ({ argument }: { argument: Argument }) => {
   return (
     <div className='bg-gray-50 dark:bg-neutral-800'>
+      { argument.date !== undefined && (
+        <div className='float-right relative right-1.5 top-0.5 text-sm'>
+          <time dateTime={argument.date} className='text-gray-400'>
+            {format(parseISO(argument.date!), 'yyyy-MM-dd')}
+          </time>
+        </div>
+        )
+      }
+
       <div className={`p-4 rounded ${borderColor(argument)}`}>
         {argument.title}
       </div>
@@ -125,8 +136,13 @@ const SubArgumentView = ({ argument, onClick }: ArgumentParams) => {
   }
   return (
     <div className="mb-4">
+      <div className='float-right relative right-1.5 top-0.5 text-sm'>
+        <span className='inline-flex items-center justify-center min-w-[1rem] h-4 text-xs font-semibold rounded-full text-gray-500 bg-gray-200 dark:bg-gray-800'>
+          {argument.id}
+        </span>
+      </div>
       <div
-        className={`p-4 rounded cursor-pointer bg-gray-50 dark:bg-neutral-800 ${borderColor(argument)}`}
+        className={`p-4 pr-6 rounded cursor-pointer bg-gray-50 dark:bg-neutral-800 ${borderColor(argument)}`}
         onClick={() => onClick(argument)}
       >
         {argument.title}
@@ -164,6 +180,7 @@ const generateArgumentTree = (statement: Statement) => {
   const argumentRoot = {
     id: statement.id,
     parent: -1,
+    date: statement.date,
     title: statement.title,
     desc: statement.statement,
     type: '',
@@ -176,6 +193,7 @@ const generateArgumentTree = (statement: Statement) => {
     const argument = {
       id: item.id,
       parent: item.parent,
+      date: undefined,
       title: item.title,
       desc: item.statement,
       type: item.type,

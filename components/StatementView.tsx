@@ -1,5 +1,5 @@
 "use client"
-import {useState} from 'react'
+import {useRef, useState} from 'react'
 import {Statement} from 'contentlayer/generated';
 import {format, parseISO} from 'date-fns';
 
@@ -11,11 +11,13 @@ type Argument = {
   id: number,
   parent: number,
   date: string|undefined,
+  source: string|undefined,
   title: string,
   desc: string|undefined,
   type: string,
   pro: Argument[],
-  con: Argument[]
+  con: Argument[],
+  references: string[]|undefined,
 }
 
 interface AncestorsParams {
@@ -74,14 +76,21 @@ const AncestorsView = ({ argumentMap, argument, onClick }: AncestorsParams) => {
 const MainArgumentView = ({ argument }: { argument: Argument }) => {
   return (
     <div className='bg-gray-50 dark:bg-neutral-800'>
-      { argument.date !== undefined && (
-        <div className='float-right relative right-1.5 top-0.5 text-sm'>
+      <div className='float-right relative right-1.5 top-0.5 text-sm'>
+        { argument.id > 0 && (
+          <span className='inline-flex items-center justify-center min-w-[1rem] h-4 text-xs font-semibold rounded-full text-gray-500 bg-gray-200 dark:bg-gray-800'>
+            {argument.id}
+          </span>
+        )}
+        { argument.source !== undefined && (
+          <a className='text-gray-500 mr-1' href={argument.source} target="_blank">话题来源</a>
+        )}
+        { argument.date !== undefined && (
           <time dateTime={argument.date} className='text-gray-400'>
             {format(parseISO(argument.date!), 'yyyy-MM-dd')}
           </time>
-        </div>
-        )
-      }
+        )}
+      </div>
 
       <div className={`p-4 rounded ${borderColor(argument)}`}>
         {argument.title}
@@ -97,6 +106,43 @@ const MainArgumentView = ({ argument }: { argument: Argument }) => {
     </div>
   )
 }
+
+const ReferencesView = ({ references }: { references: string[] }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const tooltipRef = useRef(null);
+
+  const handleMouseEnter = () => {
+    setShowTooltip(true);
+  };
+
+  const handleMouseLeave = () => {
+    setShowTooltip(false);
+  };
+
+  return (
+    <div className="relative inline-block mr-1">
+      <span
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className="text-sm text-gray-500 focus:outline-none"
+      >
+        引用
+      </span>
+      {showTooltip && (
+        <div
+          ref={tooltipRef}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className="absolute top-[1rem] z-10 bg-gray-800 text-white text-xs rounded py-1 px-4 whitespace-no-wrap"
+        >
+          {references.map((ref, idx) => (
+            <a key={idx} href={ref} target="_blank">{ref}</a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const SubArgumentView = ({ argument, onClick }: ArgumentParams) => {
   const renderFooter = (argument: Argument) => {
@@ -134,15 +180,21 @@ const SubArgumentView = ({ argument, onClick }: ArgumentParams) => {
       </div>
     )
   }
+  const renderReferences = (argument: Argument) => {
+    if (!argument.references || argument.references.length <= 0) return <></>
+    return <ReferencesView references={argument.references} />
+  }
+
   return (
     <div className="mb-4">
       <div className='float-right relative right-1.5 top-0.5 text-sm'>
+        {renderReferences(argument)}
         <span className='inline-flex items-center justify-center min-w-[1rem] h-4 text-xs font-semibold rounded-full text-gray-500 bg-gray-200 dark:bg-gray-800'>
           {argument.id}
         </span>
       </div>
       <div
-        className={`p-4 pr-6 rounded cursor-pointer bg-gray-50 dark:bg-neutral-800 ${borderColor(argument)}`}
+        className={`p-4 pt-6 rounded cursor-pointer bg-gray-50 dark:bg-neutral-800 ${borderColor(argument)}`}
         onClick={() => onClick(argument)}
       >
         {argument.title}
@@ -156,7 +208,6 @@ const SubArgumentView = ({ argument, onClick }: ArgumentParams) => {
 
 // Argument component
 const ArgumentView = ({ argument, onClick, depth }: ArgumentParams) => {
-
   return (
     <div className="mb-4 min-w-full">
       <MainArgumentView argument={argument} />
@@ -181,10 +232,12 @@ const generateArgumentTree = (statement: Statement) => {
     id: statement.id,
     parent: -1,
     date: statement.date,
+    source: statement.source,
     title: statement.title,
     desc: statement.statement,
     type: '',
-    pro: [], con: []
+    pro: [], con: [],
+    references: statement.references,
   }
   const argumentsMap: { [id: number]: Argument } = {}
   argumentsMap[statement.id] = argumentRoot
@@ -194,10 +247,12 @@ const generateArgumentTree = (statement: Statement) => {
       id: item.id,
       parent: item.parent,
       date: undefined,
+      source: undefined,
       title: item.title,
       desc: item.statement,
       type: item.type,
-      pro: [], con: []
+      pro: [], con: [],
+      references: item.references,
     }
     argumentsMap[argument.id] = argument
     const parent = argumentsMap[item.parent]

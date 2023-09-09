@@ -30,7 +30,7 @@ const Arguments = defineNestedType(() => ({
     title: { type: 'string', required: true },
     statement: { type: 'string' },
     type: { type: 'enum', options: ['pro', 'con'], required: true },
-    source: { type: 'list', of: { type: 'string' } },
+    references: { type: 'list', of: { type: 'string' } },
   },
 }))
 
@@ -42,7 +42,8 @@ export const Statement = defineDocumentType(() => ({
     date: { type: 'date', required: true },
     title: { type: 'string', required: true },
     statement: { type: 'string' },
-    source: { type: 'list', of: { type: 'string' } },
+    references: { type: 'list', of: { type: 'string' } },
+    source: { type: 'string' },
     tags: { type: 'list', of: { type: 'string'} },
     arguments: { type: 'list', of: Arguments, required: true },
   },
